@@ -16,7 +16,7 @@ div.jx-handle {
 	height: 100%;
 	width: 40px;
 	cursor: col-resize;
-	z-index: 10;
+	z-index: 15;
 	margin-left: -20px;
 }
 
@@ -148,7 +148,6 @@ div.jx-image {
 	top: 0;
 	overflow: hidden;
 	-webkit-backface-visibility: hidden;
-	-webkit-transform: scale(1);
 }
 
 .vertical div.jx-image {
@@ -161,6 +160,9 @@ div.jx-image img {
 	height: 100%;
 	z-index: 5;
 	position: absolute;
+
+	max-height: none;
+	max-width: none;
 	max-height: initial;
 	max-width: initial;
 }
@@ -336,4 +338,3 @@ a.jx-knightlab:focus span.juxtapose-name{
 	color: #000;
 	border: none;
 }
-

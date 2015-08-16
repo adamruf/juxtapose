@@ -1,13 +1,3 @@
-// smoothScroll.init({
-//     offset: 50
-// });
-
-
-var stepOnePreview;
-var stepTwoPreview;
-var stepOneData;
-var stepTwoData;
-
 function imageDataFromForm() {
     return [
         {
@@ -44,11 +34,25 @@ function optionsFromForm() {
     return options;
 }
 
+// Set the iframe height/width equal to that of the image with the smaller respective dimension
+function setDims(dim, images){
+  return images[0][dim] > images[1][dim] ? images[1][dim] : images[0][dim];
+}
+
 function createSliderFromForm() {
     $("#create-slider-preview").html('');
-    window.slider_preview = new juxtapose.JXSlider("#create-slider-preview", imageDataFromForm(), optionsFromForm());
+    document.getElementById('slider-size-warning').style.display = 'none';
+    var opts = optionsFromForm();
+    opts.callback = function(jx) {
+      var result = jx.optimizeWrapper($('.row-fluid').width());
+      if (result == juxtapose.OPTIMIZATION_WAS_CONSTRAINED){
+        document.getElementById('slider-size-warning').style.display = 'block';
+      }
+    }
+    window.slider_preview = new juxtapose.JXSlider("#create-slider-preview", imageDataFromForm(), opts);
     updateEmbedCode();
 }
+
 $("#update-preview").click(createSliderFromForm);
 
 function imageTagForObject(o) {
@@ -70,24 +74,24 @@ function updateEmbedCode() {
             startingPosition: w.getAttribute('data-startingposition')
 
     */
-    code =  '<div class="juxtapose" data-startingposition="'
-                + opts.startingPosition
-                + '" data-showlabels="'
-                + opts.showLabels
-                + '" data-showcredits="'
-                + opts.showCredits
-                +'" data-animate="'
-                + opts.animate
-                +'" data-mode="'
-                + opts.mode
-                +'">\n'
-                + imageTagForObject(imgs[0])
-                + '\n'
-                + imageTagForObject(imgs[1])
-                +'\n'
-            + '</div>'
+    // code =  '<div class="juxtapose" data-startingposition="'
+    //             + opts.startingPosition
+    //             + '" data-showlabels="'
+    //             + opts.showLabels
+    //             + '" data-showcredits="'
+    //             + opts.showCredits
+    //             +'" data-animate="'
+    //             + opts.animate
+    //             +'" data-mode="'
+    //             + opts.mode
+    //             +'">\n'
+    //             + imageTagForObject(imgs[0])
+    //             + '\n'
+    //             + imageTagForObject(imgs[1])
+    //             +'\n'
+    //         + '</div>'
 
-    $('#embed-code').text(code);
+    // $('#embed-code').text(code);
 }
 
 $('a.help').popover({
@@ -120,9 +124,6 @@ $("#authoring-form input#starting-position").change(function(evt) {
     } catch(e) {
         evt.preventDefault();
     }
-
-    console.log(value);
-    console.log(typeof(value));
 })
 
 $("#use-current-position").click(function(){
@@ -133,3 +134,58 @@ $("#use-current-position").click(function(){
 });
 
 createSliderFromForm();
+
+var iFrameURL = 'https://cdn.knightlab.com/libs/juxtapose/latest/embed/index.html';
+
+function createIFrameCode(data) {
+    var uid = data.uid;
+    var url = iFrameURL + '?uid=' + uid;
+    var images = [slider_preview.imgBefore.image, slider_preview.imgAfter.image];
+    var width = setDims("naturalWidth", images);
+    var height = slider_preview.calculateDims(width, null).height;
+    code = '<iframe class="juxtapose" width="' + width + '" height="' + height + '" src="' + url + '"></iframe>';
+    $('#embed-code').text(code);
+
+}
+
+function getJSONToPublish() {
+    data = {
+        'images': imageDataFromForm(),
+        'options': optionsFromForm(),
+    }
+    return data;
+}
+
+function callCreateAPI(data) {
+
+    $.ajax({
+      type: "POST",
+      data: JSON.stringify(data),
+      contentType: 'application/json',
+      dataType: 'json',
+      url: "/juxtapose/create/",
+      complete: function(data) { $("#publish-slider").removeClass('disabled'); },
+      success: function(data) { 
+        createIFrameCode(data); 
+      },
+      error: function(xhr, status, errorMsg) { 
+        $("#publish-error").html("<strong>Error:</strong> " + errorMsg).show();
+        console.log(xhr);
+      }
+    });
+
+}
+
+function publishSlider() {
+    if (!$("#publish-slider").hasClass('disabled')) {
+        $("#publish-error").html("").hide();        
+        $("#publish-slider").addClass('disabled');
+        $("#publish-note").show();
+        data = getJSONToPublish()
+        callCreateAPI(data);
+    }
+}
+$("#publish-slider").click(publishSlider);
+
+
+
